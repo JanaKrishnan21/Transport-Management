@@ -13,7 +13,8 @@ export const Route = sequelize.define('Route', {
         allowNull: false,
         unique: true
     }
+
 });
-Route.belongsTo(User, { as: 'driver', foreignKey: 'driver_id' });
-User.hasMany(Route, { as: 'assignedRoutes', foreignKey: 'driver_id' });
+// Route.belongsTo(User, { as: 'driver', foreignKey: 'driver_id' });
+// User.hasMany(Route, { as: 'assignedRoutes', foreignKey: 'driver_id' });
 export default Route;

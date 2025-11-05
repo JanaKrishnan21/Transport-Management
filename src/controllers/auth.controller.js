@@ -1,86 +1,121 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { User, Driver,Student } from '../models/index.js'
+import { User, Driver, Student } from '../models/index.js'
+import { error } from '../utils/response.js';
 
 export const register = async (req, res) => {
   try {
-    const { name, email, password, role ,roll_no} = req.body;
+    const { username, password, name, email, role, roll_no,bus_id,license_no } = req.body;
 
-    // check if first admin
-    const adminExists = await User.findOne({ where: { role: 'admin' } });
-    if (role === 'admin' && !adminExists) {
-      const hash = await bcrypt.hash(password, 10);
-      const user = await User.create({ name, email, password: hash, role });
-      return res.status(201).json({ id: user.id, name: user.name, email: user.email, role: user.role });
+    // 1️⃣ Validate required fields
+    if (!username || !password || !name || !email) {
+      return res.status(400).json({
+        error: "Username, password, name, and email are required"
+      });
     }
 
-    // for all other users, require admin
-    if (!req.user || req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Only admins can register new users' });
+    // 2️⃣ Check for duplicates
+    const existingUser = await User.findOne({ where: { username } });
+    if (existingUser) return res.status(400).json({ error: "Username already exists" });
+
+    const existingEmail = await User.findOne({ where: { email } });
+    if (existingEmail) return res.status(400).json({ error: "Email already exists" });
+
+    // 3️⃣ Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 4️⃣ Create user with role
+    const user = await User.create({
+      username,
+      password: hashedPassword,
+      name,
+      email,
+      role: role || "student" // default to student if role missing
+    });
+
+    // 5️⃣ Create role-specific records
+    if (role === "driver") {
+      await Driver.create({ user_id: user.id,
+        bus_id: bus_id || null,
+        license_no, name,email  });
+    } else if (role === "student") {
+      await Student.create({  name,
+        email,
+        roll_no,
+        bus_id: bus_id || null,
+        user_id: user.id });
     }
 
-    // check duplicate
-    const exists = await User.findOne({ where: { email } });
-    if (exists) return res.status(400).json({ error: 'User already exists' });
-
-    const hash = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, password: hash, role });
-
-    // if driver, create driver entry
-    if (role === 'driver') {
-      await Driver.create({ user_id: user.id, bus_id: null });
+    // 6️⃣ Send response once
     res.status(201).json({
       id: user.id,
       name: user.name,
       email: user.email,
-      role: user.role,});
-    }
-    else if (role === 'student') {
-      await Student.create({ user_id: user.id, route_id: null,roll_no });
+      role: user.role
+    });
+
+  } catch (err) {
+    console.error("REGISTER ERROR:", err);
+
+    // Handle Sequelize validation errors
+    if (err.name === "SequelizeValidationError") {
+      return res.status(400).json({ errors: err.errors.map(e => e.message) });
     }
 
-    res.status(201).json({
+    res.status(500).json({ error: "Registration failed" });
+  }
+};
+
+
+export const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ where: { email } });
+    console.log("Login request:", { email, password });
+  
+    if (!user) return res.status(400).json({error: 'Invalid credentials' });
+    console.log(user);
+    console.log("Email from request:", `"${req.body.email}"`);
+    console.log("Password from request:", `"${req.body.password}"`);
+    console.log("Hash from DB:", `"${user.password}"`);
+    console.log(error);
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    console.log("user.password:", user.password)
+    console.log("Compare result:", isMatch);
+    
+    if (!isMatch) return res.status(400).json({error: 'Invalid credentials' });
+    
+    
+    const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES });
+    res.json({ 
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
-    });
+      token
+     });
   } catch (err) {
-    console.error('REGISTER ERROR:', err); // ✅ log actual error
-    res.status(500).json({ error: 'Registration failed' });
+    res.status(500).json({ error: err.message || 'Login failed' });
   }
 };
-
-export const login = async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        const user = await User.findOne({ where: { email } });
-        if (!user) return res.status(400).json({ error: 'Invalid credentials' });
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
-        const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES });
-        res.json({ token });
-    } catch (err) {
-        res.status(500).json({ error: 'Login failed' });
-    }
-};
 export const logout = (req, res) => {
-    res.json({ message: 'Logged out successfully' });
+  res.json({ message: 'Logged out successfully' });
 };
 
 export const resetpassword = async (req, res) => {
-    try {
-        const { oldPassword, newPassword } = req.body;
-        const user = await User.findByPk(req.user.id);
-        if (!user) return res.status(404).json({ error: 'User not found' });
-        const isMatch = await bcrypt.compare(oldPassword, user.password);
-        if (!isMatch) return res.status(400).json({ error: 'Old password is incorrect' });
-        const hash = await bcrypt.hash(newPassword, 10);
-        user.password = hash;
-        await user.save();
-        res.json({ message: 'Password updated successfully' });
-    } catch (err) {
-        res.status(500).json({ error: 'Password reset failed' });
-    }
+  try {
+    const { oldPassword, newPassword } = req.body;
+    const user = await User.findByPk(req.user.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) return res.status(400).json({ error: 'Old password is incorrect' });
+    const hash = await bcrypt.hash(newPassword, 10);
+    user.password = hash;
+    await user.save();
+    res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Password reset failed' });
+  }
 };
 

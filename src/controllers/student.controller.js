@@ -1,27 +1,64 @@
 import { Student, Bus, Route, User } from '../models/index.js';
+import bcrypt from "bcrypt";
 
+
+export const viewstudent = async (req, res) => {
+  try {
+    const students = await Student.findAll();
+    res.json(students);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch students" });
+  }
+};
 
 export const addStudent = async (req, res) => {
   try {
-    const student = await Student.create(req.body);
-    res.status(201).json(student);
+    const { name, email, bus_id, roll_no, username, password, route_id } = req.body;
+
+    if (!name || !email || !roll_no || !username || !password || !route_id) {
+      return res.status(400).json({ error: "Name, email, roll_no, username,password and route_id are required" });
+    }
+
+    // Check for duplicate username or email
+    const existingUser = await User.findOne({ where: { username } });
+    if (existingUser) return res.status(400).json({ error: "Username already exists" });
+
+    const existingEmail = await Student.findOne({ where: { email } });
+    if (existingEmail) return res.status(400).json({ error: "Email already assigned to a student" });
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
+    const user = await User.create({ name, email, password: hashedPassword, role: "student" });
+
+    // Create student linked to user
+    const student = await Student.create({
+      name,
+      email,
+      bus_id,
+      roll_no,
+      route_id,
+      user_id: user.id
+    });
+
+    res.status(201).json({ student, user });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to add student' });
+    console.error("Create student error:", err);
+    res.status(500).json({ error: "Failed to create student" });
   }
 };
 
 
-export const assignRoute = async (req, res) => {
+export const updatestudents = async (req, res) => {
   try {
     const student = await Student.findByPk(req.params.id);
     console.log(student);
     if (!student) return res.status(404).json({ error: 'Student not found' });
-
-    student.route_id = req.body.route_id;
-    await student.save();
+    await student.update(req.body);
     res.json(student);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to assign route' });
+    res.status(400).json({ error: "Failed to update student" });
   }
 };
 
@@ -41,24 +78,30 @@ export const getTransportFee = async (req, res) => {
 };
 
 
-export const getStudentsByDriver = async (req, res) => {
+export const getStudentWithBus = async (req, res) => {
+  const userId = req.params.userId;
   try {
-    const { driverId } = req.params;
+    const student = await Student.findOne({
+      where: { user_id: userId },
+      include: {
+        model: Bus,
+        as: 'bus',
+        attributes: ['bus_no', 'route_id'],
+        include: {
+          model: Route,
+          as: 'route',
+          attributes: ['id', 'name']
+        }
+      }
 
-    if (req.user.role === 'driver' && req.user.id !== parseInt(driverId)) {
-      return res.status(403).json({ error: 'Forbidden: not your bus' });
-    }
-
-    const bus = await Bus.findOne({ where: { driver_id: driverId }, include: [Route] });
-    if (!bus || !bus.route) return res.status(404).json({ error: 'No route assigned to this bus' });
-
-    const students = await Student.findAll({
-      where: { route_id: bus.route.id },
-      include: [{ model: User, as: 'profile', attributes: ['id', 'name', 'email'] }]
     });
 
-    res.json(students);
+    if (!student) return res.status(404).json({ error: "Student not found" });
+
+    res.json(student);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch students' });
+    console.error("Fetch student bus error:", err);
+    res.status(500).json({ error: "Failed to fetch student bus info" });
   }
 };
+

@@ -5,8 +5,11 @@ import { permit } from '../middleware/role.middleware.js';
 
 const router = express.Router();
 
-router.post('/add', auth, permit('admin'), addRoute);
-router.put('/assign-bus/:id', auth, permit('admin'), assignedBusToRoute);
-router.get('/list', auth, permit('admin', 'driver', 'student'), listRoutes);
+// Admin-only actions
+router.post('/add', auth(['admin']), addRoute);
+router.put('/assign-bus/:id', auth(['admin']), assignedBusToRoute);
+
+// Route list → public for student & driver, secured for admin
+router.get('/list', listRoutes);
 
 export default router;

@@ -1,19 +1,35 @@
 import { DataTypes } from 'sequelize';
 import { sequelize } from '../config/db.js';
-import { User } from '../models/user.model.js';
-import { Route } from '../models/route.model.js';
+// import { User } from '../models/user.model.js';
+// import { Bus } from '../models/bus.model.js';
+// import { Route } from '../models/route.model.js';
 
 
 export const Student = sequelize.define('Student', {
-    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-    roll_no: { type: DataTypes.STRING, allowNull: false },
-    fee_amount: { type: DataTypes.FLOAT, defaultValue: 0 },
-    fee_status: { type: DataTypes.ENUM('unpaid', 'paid'), defaultValue: 'unpaid' }
+    user_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'Users',
+      key: 'id'
+    },
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE'
+  },
+name: { type: DataTypes.STRING, allowNull: false },
+email: { type: DataTypes.STRING, allowNull: false },
+roll_no: { type: DataTypes.STRING, allowNull: false },
+bus_id: { type: DataTypes.INTEGER, allowNull: true },
+ route_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    }
 });
-Student.belongsTo(User, { as: 'profile', foreignKey: 'user_id' });
-User.hasOne(Student, { as: 'studentProfile', foreignKey: 'user_id' });
+// Student.js
+// Student.belongsTo(User, { foreignKey: "user_id" });
+// Student.belongsTo(Bus, { foreignKey: "bus_id" });
 
-Student.belongsTo(Route, { as: 'route', foreignKey: 'route_id' });
-Route.hasMany(Student, { as: 'students', foreignKey: 'route_id' });
+// Student.belongsTo(Route, { as: 'route', foreignKey: 'route_id' });
+// Route.hasMany(Student, { as: 'students', foreignKey: 'route_id' });
 
 export default Student;

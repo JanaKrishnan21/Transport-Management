@@ -1,37 +1,53 @@
 import { DataTypes } from 'sequelize';
-import sequelize from '../config/db.js';
-import User from '../models/user.model.js';
-import Bus from '../models/bus.model.js';
+import { sequelize } from '../config/db.js';
+import { User } from '../models/user.model.js';
+import { Bus } from '../models/bus.model.js';
 
-const Driver = sequelize.define('Driver', {
-  id: {
-    type: DataTypes.INTEGER,
-    autoIncrement: true,
-    primaryKey: true,
-  },
+export const Driver = sequelize.define('Driver', {
   user_id: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
     references: {
-      model: User,
-      key: 'id',
+      model: 'Users',
+      key: 'id'
     },
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE'
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  email: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+    validate: {
+      isEmail: true
+    }
+  },
+  license_no: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
   },
   bus_id: {
     type: DataTypes.INTEGER,
     allowNull: true,
-    references: {
-      model: Bus,
-      key: 'id',
-    },
-  }
-}, {
-  tableName: 'drivers',
-  timestamps: true,
+    references: { model: 'Buses', key: 'id' },
+    onUpdate: 'CASCADE',
+    onDelete: 'SET NULL'
+  },
+  route_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  
 });
 
 // Associations
-Driver.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
-Driver.belongsTo(Bus, { foreignKey: 'bus_id', as: 'bus' });
+Driver.belongsTo(User, { foreignKey: "user_id" });
+Driver.belongsTo(Bus, { foreignKey: "bus_id" });
 
 export default Driver;
+

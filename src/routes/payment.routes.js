@@ -5,8 +5,13 @@ import { permit } from '../middleware/role.middleware.js';
 
 const router = express.Router();
 
+// Admin-only: set fee for student
 router.post('/set/:id', auth, permit('admin'), setFee);
-router.post('/pay/:id', auth, permit('student'), payFee);
-router.get('/fee/:id', auth, permit('admin', 'student'), getFee);
+
+// Student-only: pay fee (requires token if you enforce student login)
+router.post('/pay/:id', payFee);
+
+// Fee details: public for student, token required for admin
+router.get('/fee/:id', getFee);
 
 export default router;

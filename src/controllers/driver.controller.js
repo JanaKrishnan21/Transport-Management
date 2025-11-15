@@ -19,7 +19,7 @@ console.log("driver",driver);
     // Get students in that bus
     const students = await Student.findAll({
       where: { bus_id: driver.bus_id },
-      attributes: ["id", "name", "email", "roll_no"]
+      attributes: ["id", "name", "email", "roll_no", "profile_photo"]
     });
 
     res.json({ students });
@@ -40,8 +40,8 @@ export const getAllDrivers = async (req, res) => {
 };
 export const  createDriver = async (req, res) => {
   try {
-    const { name, email, license_no, bus_id,route_id,password,username} = req.body;
-    const driver = await Driver.create({ name, email, license_no, bus_id ,route_id,password,username});
+    const { name, email, license_no, bus_id,route_id,password,username,profile_photo} = req.body;
+    const driver = await Driver.create({ name, email, license_no, bus_id ,route_id,password,username,profile_photo});
     res.status(201).json(driver);
   } catch (err) {
     if (err.name === "SequelizeUniqueConstraintError") {
@@ -54,11 +54,11 @@ export const  createDriver = async (req, res) => {
 export const updateDriver = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, license_no, bus_id,route_id ,password,username} = req.body;
+    const { name, email, license_no, bus_id,route_id ,password,username,profile_photo} = req.body;
     const driver = await Driver.findByPk(id);
     if (!driver) return res.status(404).json({ error: "Driver not found" });
 
-    await driver.update({ name, email, license_no, bus_id,route_id,password,username });
+    await driver.update({ name, email, license_no, bus_id,route_id,password,username,profile_photo });
     res.json(driver);
   } catch (err) {
     console.error("Update driver error:", err);
@@ -97,6 +97,8 @@ export const getStudentByDriver = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch driver data" });
   }
 };
+
+
 
 // export const assignedBus = async (req, res) => {
 //     try {

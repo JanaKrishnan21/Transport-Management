@@ -42,6 +42,10 @@ export const Driver = sequelize.define('Driver', {
     type: DataTypes.INTEGER,
     allowNull: true
   },
+  profile_photo: {
+  type: DataTypes.STRING,
+  allowNull: true // optional if you want a default fallback
+}
   
 });
 

@@ -13,10 +13,10 @@ export const viewstudent = async (req, res) => {
 
 export const addStudent = async (req, res) => {
   try {
-    const { name, email, bus_id, roll_no, username, password, route_id } = req.body;
+    const { name, email, bus_id, roll_no, username, password, route_id,profile_photo, genter  } = req.body;
 
-    if (!name || !email || !roll_no || !username || !password || !route_id) {
-      return res.status(400).json({ error: "Name, email, roll_no, username,password and route_id are required" });
+    if (!name || !email || !roll_no || !username || !password || !route_id || !genter) {
+      return res.status(400).json({ error: "Name, email, roll_no, username,password , route_id and gender are required" });
     }
 
     // Check for duplicate username or email
@@ -39,7 +39,10 @@ export const addStudent = async (req, res) => {
       bus_id,
       roll_no,
       route_id,
-      user_id: user.id
+      gender,
+      user_id: user.id,
+      profile_photo: profile_photo || '/default-profile.png',
+      
     });
 
     res.status(201).json({ student, user });
@@ -52,15 +55,22 @@ export const addStudent = async (req, res) => {
 
 export const updatestudents = async (req, res) => {
   try {
+    // Find student by primary key (id)
     const student = await Student.findByPk(req.params.id);
-    console.log(student);
-    if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    if (!student) {
+      return res.status(404).json({ error: `Student with id ${req.params.id} not found` });
+    }
+
     await student.update(req.body);
     res.json(student);
   } catch (err) {
-    res.status(400).json({ error: "Failed to update student" });
+    console.error("Update student error:", err);
+    res.status(400).json({ error: "Failed to update student", details: err.message });
   }
 };
+
+
 
 export const getTransportFee = async (req, res) => {
   try {
@@ -104,4 +114,22 @@ export const getStudentWithBus = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch student bus info" });
   }
 };
+export const getStudentProfile = async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    const student = await Student.findOne({
+      where: { user_id: userId },
+      attributes: ['id', 'name', 'email', 'roll_no', 'bus_id', 'route_id','gender']
+    });
+
+    if (!student) return res.status(404).json({ error: "Student not found" });
+
+    res.json(student);
+  } catch (err) {
+    console.error("Fetch student profile error:", err);
+    res.status(500).json({ error: "Failed to fetch student profile" });
+  }
+};
+
 

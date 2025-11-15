@@ -23,8 +23,21 @@ bus_id: { type: DataTypes.INTEGER, allowNull: true },
  route_id: {
       type: DataTypes.INTEGER,
       allowNull: true
-    }
+    },
+profile_photo: {
+  type: DataTypes.STRING,
+  allowNull: true // optional if you want a default fallback
+},
+gender: {
+  type: DataTypes.STRING,
+  allowNull: false,
+  validate: {
+    isIn: [['male', 'female']]
+  }
+}
+
 });
+
 // Student.js
 // Student.belongsTo(User, { foreignKey: "user_id" });
 // Student.belongsTo(Bus, { foreignKey: "bus_id" });

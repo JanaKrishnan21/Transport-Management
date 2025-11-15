@@ -13,6 +13,8 @@ import studentRoutes from "./src/routes/student.routes.js";
 import notificationRoutes from "./src/routes/notification.routes.js";
 import paymentRoutes from "./src/routes/payment.routes.js";
 import busRoutes from "./src/routes/bus.routes.js";
+import uploadRoutes from './src/routes/upload.routes.js';
+import adminRoutes from './src/routes/admin.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -40,6 +42,8 @@ app.use("/routes", routeRoutes);
 app.use("/notifications", notificationRoutes);
 app.use("/payments", paymentRoutes);
 app.use("/buses", busRoutes);
+app.use('/upload', uploadRoutes);
+app.use('/admin', adminRoutes);
 
 // Path setup for serving frontend in production
 const __filename = fileURLToPath(import.meta.url);
